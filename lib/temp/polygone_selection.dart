@@ -16,6 +16,22 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
   static const double snapDistance = 20.0;
   MouseCursor currentCursor = SystemMouseCursors.precise;
 
+  final TextEditingController detailsController = TextEditingController();
+  final TextEditingController promptController = TextEditingController();
+
+  bool isHoveringInsidePolygon = false;
+  Offset? hoverPosition;
+
+  String? savedDetails;
+  String? savedPrompt;
+
+  @override
+  void dispose() {
+    detailsController.dispose();
+    promptController.dispose();
+    super.dispose();
+  }
+
 
   bool isSnapping = false;
 
@@ -26,6 +42,25 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
       previewPoint = null;
       isSnapping = false;
     });
+  }
+
+  bool isPointInPolygon(Offset point, List<Offset> polygon) {
+    if (polygon.length < 3) return false;
+
+    int intersectCount = 0;
+
+    for (int j = 0; j < polygon.length; j++) {
+      final p1 = polygon[j];
+      final p2 = polygon[(j + 1) % polygon.length];
+
+      if ((p1.dy > point.dy) != (p2.dy > point.dy)) {
+        final x =
+            (p2.dx - p1.dx) * (point.dy - p1.dy) / (p2.dy - p1.dy) + p1.dx;
+        if (point.dx < x) intersectCount++;
+      }
+    }
+
+    return (intersectCount % 2) == 1;
   }
 
   @override
@@ -44,13 +79,12 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
           MouseRegion(
             cursor: MouseCursor.uncontrolled,
             onHover: (event) {
-
-              final hoverPosition = event.localPosition;
+              final hoverPos = event.localPosition;
 
               bool hoveringPoint = false;
 
               for (var point in polygonPoints) {
-                if ((hoverPosition - point).distance < pointHitRadius) {
+                if ((hoverPos - point).distance < pointHitRadius) {
                   hoveringPoint = true;
                   break;
                 }
@@ -67,31 +101,17 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
               // 👇 keep your existing logic below
               if (isPolygonClosed) return;
 
-
-              // Check if hovering over an existing point
-              for (var point in polygonPoints) {
-                if ((hoverPosition - point).distance < pointHitRadius) {
-                  hoveringPoint = true;
-                  break;
-                }
-              }
-
               setState(() {
-                previewPoint = hoverPosition;
+                previewPoint = hoverPos;
 
-                // Cursor logic
                 if (draggingPointIndex != null) {
-                  // Already dragging → grabbing
                   currentCursor = SystemMouseCursors.grabbing;
                 } else if (hoveringPoint) {
-                  // Hover over point → show grab
                   currentCursor = SystemMouseCursors.grab;
                 } else {
-                  // Default adding cursor
                   currentCursor = SystemMouseCursors.precise;
                 }
 
-                // Snapping logic
                 if (polygonPoints.isNotEmpty) {
                   final distance =
                       (previewPoint! - polygonPoints.first).distance;
@@ -104,7 +124,7 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
             },
             child: GestureDetector(
 
-            onTapUp: (details) {
+            onTapUp: (details) async {
                 if (isPolygonClosed) return;
 
                 final tapPosition = details.localPosition;
@@ -116,46 +136,99 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
                     previewPoint = null;
                     isSnapping = false;
                   });
-                  showDialog(context: context, builder: (context)=>Center(
-                    child: Material(
-                      child: Container(
-                        height: 400 ,
-                        width: 500,
-                        decoration: BoxDecoration(
-
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30)
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-
-                            children: [
-                              Spacer(),
-                              Text("Enter the details"),
-                              SizedBox(height: 20,),
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  labelText: "details",
-                                ),
-                              ),
-                              Spacer(),
-                              Text("Enter the prompt"),
-                              SizedBox(height: 20,),
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  labelText: "prompt",
-                                ),
-                              ),
-                              Spacer(),
-                            ],
-                          ),
-                        ),
-
+                  await showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) {
+                    return Dialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                    ),
-                  ));
+                      child: Container(
+                        width: 420,
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              "Add Region Details",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            TextFormField(
+                              controller: detailsController,
+                              decoration: InputDecoration(
+                                labelText: "Details",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                prefixIcon: const Icon(Icons.description),
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            TextFormField(
+                              controller: promptController,
+                              decoration: InputDecoration(
+                                labelText: "Prompt",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                prefixIcon: const Icon(Icons.auto_awesome),
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text("Cancel"),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      final details = detailsController.text.trim();
+                                      final prompt = promptController.text.trim();
+
+                                      debugPrint("DETAILS: $details");
+                                      debugPrint("PROMPT: $prompt");
+
+                                      setState(() {
+                                        savedDetails = details;
+                                        savedPrompt = prompt;
+                                      });
+
+
+                                      Navigator.pop(context);
+
+                                      // 🔥 optional: clear after save
+                                      detailsController.clear();
+                                      promptController.clear();
+                                    },
+                                    child: const Text("Save"),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  );
                   return;
                 }
 
@@ -220,6 +293,51 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
               child: const Text("Reset"),
             ),
           ),
+          if (isPolygonClosed &&
+              isHoveringInsidePolygon &&
+              hoverPosition != null)
+            Positioned(
+              left: hoverPosition!.dx + 12,
+              top: hoverPosition!.dy + 12,
+              child: IgnorePointer(
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (savedDetails != null && savedDetails!.isNotEmpty)
+                          Text(
+                            savedDetails!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        if (savedPrompt != null && savedPrompt!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            savedPrompt!,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
