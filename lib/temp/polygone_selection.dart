@@ -55,6 +55,16 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
                   break;
                 }
               }
+
+              if (isPolygonClosed) {
+                setState(() {
+                  hoverPosition = hoverPos;
+                  isHoveringInsidePolygon =
+                      isPointInPolygon(hoverPos, polygonPoints);
+                });
+              }
+
+              // 👇 keep your existing logic below
               if (isPolygonClosed) return;
 
 
