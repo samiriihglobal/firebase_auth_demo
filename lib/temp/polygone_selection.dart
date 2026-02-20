@@ -54,8 +54,7 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
       final p2 = polygon[(j + 1) % polygon.length];
 
       if ((p1.dy > point.dy) != (p2.dy > point.dy)) {
-        final x =
-            (p2.dx - p1.dx) * (point.dy - p1.dy) / (p2.dy - p1.dy) + p1.dx;
+        final x = (p2.dx - p1.dx) * (point.dy - p1.dy) / (p2.dy - p1.dy) + p1.dx;
         if (point.dx < x) intersectCount++;
       }
     }
@@ -191,6 +190,9 @@ class _PolygonImageSelectionPageState extends State<PolygonImageSelectionPage> {
                                 Expanded(
                                   child: OutlinedButton(
                                     onPressed: () {
+                                      resetPolygon();
+                                      detailsController.clear();
+                                      promptController.clear();
                                       Navigator.pop(context);
                                     },
                                     child: const Text("Cancel"),
