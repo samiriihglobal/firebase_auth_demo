@@ -1,5 +1,4 @@
 import 'package:firebase_auth_demo/firebase_options.dart';
-import 'package:firebase_auth_demo/temp/polygone_selection.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
@@ -29,9 +28,15 @@ class MyApp extends StatelessWidget {
     //   initialRoute: AppPages.INITIAL,
     //   getPages: AppPages.routes,
     // );
-    return MaterialApp(
-      home: PolygonImageSelectionPage(),
+    ThemeService themeService = Get.put(ThemeService());
+    return GetMaterialApp(
+      title: "Firebase Auth Demo",
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeService.themeMode,
+      initialRoute: AppPages.INITIAL,
+      getPages: AppPages.routes,
     );
   }
 }
