@@ -21,5 +21,9 @@ class AuthRepository{
   Future<void> logout() {
     return _provider.signOut();
   }
+
+  Future<void> forgotPassword(String email) {
+    return _provider.sendPasswordResetEmail(email);
+  }
 }
 // hello
