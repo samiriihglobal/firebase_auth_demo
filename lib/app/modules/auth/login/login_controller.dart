@@ -47,6 +47,36 @@ class LoginController extends GetxController {
     }
   }
 
+  void forgotPassword() async {
+    final userEmail = email.value.trim();
+
+    if (userEmail.isEmpty) {
+      Get.snackbar("Missing Email", "Please enter your email first.");
+      return;
+    }
+
+    if (!GetUtils.isEmail(userEmail)) {
+      Get.snackbar("Invalid Email", "Please enter a valid email address.");
+      return;
+    }
+
+    try {
+      await _repository.forgotPassword(userEmail);
+      Get.snackbar(
+        "Reset Email Sent",
+        "Check your inbox for password reset instructions.",
+      );
+    } catch (e) {
+      String errorMessage = "Unable to send reset email. Please try again.";
+      if (e.toString().contains("user-not-found")) {
+        errorMessage = "No user found with this email.";
+      } else if (e.toString().contains("invalid-email")) {
+        errorMessage = "The email address is invalid.";
+      }
+      Get.snackbar("Reset Failed", errorMessage);
+    }
+  }
+
   void goToSignup() {
     Get.toNamed('/signup');
   }
